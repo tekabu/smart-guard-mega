@@ -95,7 +95,7 @@ void handleSerialCommand(const String &command) {
   Serial.print("Forwarding ");
   Serial.print(command);
   Serial.println(" to Serial2");
-  Serial2.print(command);
+  Serial2.println(command);
 }
 
 void sendSerial2Response(const String &message) {
