@@ -39,8 +39,8 @@ void loop() {
 }
 
 void processSerial2() {
-  while (Serial.available() > 0) {
-    char c = Serial.read();
+  while (Serial2.available() > 0) {
+    char c = Serial2.read();
     
     if (c == '$') {
       serial2Buffer = "$";
