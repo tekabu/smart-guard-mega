@@ -47,7 +47,7 @@ void processSerial2() {
     Serial.print("' (ASCII: ");
     Serial.print((int)c);
     Serial.print(") Buffer: '");
-    Serial.print(serialBuffer);
+    Serial.print(serial2Buffer);
     Serial.println("'");
     
     if (c == '$') {
