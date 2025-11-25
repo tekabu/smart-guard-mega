@@ -11,6 +11,8 @@ bool registrationRequested = false;
 String serial2Buffer;
 bool serial2Capturing = false;
 String serialCmdBuffer;
+bool fingerprint1Busy = false;
+bool fingerprint3Busy = false;
 
 void setup() {
   Serial.begin(SERIAL_USB_BAUD);
@@ -37,6 +39,9 @@ void loop() {
     } else {
       sendSerial2Response("$FP_FAIL#");
     }
+  } else {
+    checkFingerprintForMatch(fingerprint1, 1, fingerprint1Busy);
+    checkFingerprintForMatch(fingerprint3, 2, fingerprint3Busy);
   }
 }
 
@@ -113,6 +118,40 @@ void processSerial2() {
       serial2Buffer = "";
       serial2Capturing = false;
     }
+  }
+}
+
+void checkFingerprintForMatch(Adafruit_Fingerprint &sensor, int sensorIndex, bool &isBusy) {
+  int result = sensor.getImage();
+
+  if (result == FINGERPRINT_OK) {
+    if (isBusy) {
+      return;
+    }
+
+    isBusy = true;
+
+    if (sensor.image2Tz(1) != FINGERPRINT_OK) {
+      Serial.print("Sensor ");
+      Serial.print(sensorIndex);
+      Serial.println(": image conversion failed");
+      return;
+    }
+
+    if (sensor.fingerFastSearch() != FINGERPRINT_OK) {
+      Serial.print("Sensor ");
+      Serial.print(sensorIndex);
+      Serial.println(": fingerprint invalid");
+      return;
+    }
+
+    Serial.print("Sensor ");
+    Serial.print(sensorIndex);
+    Serial.print(": valid fingerprint ID ");
+    Serial.println(sensor.fingerID);
+    sendSerial2Response("$FP_ID: " + String(sensorIndex) + "," + String(sensor.fingerID) + "#");
+  } else if (result == FINGERPRINT_NOFINGER) {
+    isBusy = false;
   }
 }
 
