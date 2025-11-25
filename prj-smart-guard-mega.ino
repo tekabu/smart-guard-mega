@@ -3,6 +3,7 @@
 // UART connections
 constexpr uint32_t SERIAL_USB_BAUD = 115200;
 constexpr uint32_t FINGERPRINT_BAUD = 57600;
+constexpr uint8_t LOCK_PIN = 12;
 
 Adafruit_Fingerprint fingerprint1(&Serial1);
 Adafruit_Fingerprint fingerprint3(&Serial3);
@@ -22,6 +23,9 @@ void setup() {
 
   fingerprint1.begin(FINGERPRINT_BAUD);
   fingerprint3.begin(FINGERPRINT_BAUD);
+
+  pinMode(LOCK_PIN, OUTPUT);
+  digitalWrite(LOCK_PIN, HIGH);
 
   Serial.println("Fingerprint system ready");
 }
@@ -110,7 +114,11 @@ void processSerial2() {
       if (serial2Buffer == "$FP_REG#") {
         registrationRequested = true;
       } else if (serial2Buffer == "$OPEN_LOCK#") {
-        Serial.println("Lock successfully opened");
+        Serial.println("Serial2: open lock command received");
+        digitalWrite(LOCK_PIN, LOW);
+        delay(5000);
+        digitalWrite(LOCK_PIN, HIGH);
+        Serial.println("Serial2: lock released");
       } else {
         Serial.println("Serial2: unknown command");
       }
