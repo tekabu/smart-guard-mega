@@ -23,7 +23,10 @@ void setup() {
   Serial.println("Fingerprint system ready");
 }
 
+String serialCmdBuffer;
+
 void loop() {
+  processSerialCommands();
   processSerial2();
 
   if (registrationRequested) {
@@ -65,6 +68,34 @@ void processSerial2() {
       Serial.println("[DEBUG] Char ignored (buffer not started)");
     }
   }
+}
+
+void processSerialCommands() {
+  while (Serial.available()) {
+    char c = Serial.read();
+
+    if (c == '\n' || c == '\r') {
+      if (serialCmdBuffer.length() > 0) {
+        handleSerialCommand(serialCmdBuffer);
+        serialCmdBuffer = "";
+      }
+      continue;
+    }
+
+    serialCmdBuffer += c;
+
+    if (serialCmdBuffer == "DEBUGON" || serialCmdBuffer == "DEBUGOFF") {
+      handleSerialCommand(serialCmdBuffer);
+      serialCmdBuffer = "";
+    }
+  }
+}
+
+void handleSerialCommand(const String &command) {
+  Serial.print("Forwarding ");
+  Serial.print(command);
+  Serial.println(" to Serial2");
+  Serial2.print(command);
 }
 
 void sendSerial2Response(const String &message) {
