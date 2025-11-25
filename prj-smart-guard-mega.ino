@@ -10,6 +10,7 @@ Adafruit_Fingerprint fingerprint3(&Serial3);
 bool registrationRequested = false;
 String serial2Buffer;
 bool serial2Capturing = false;
+String serialCmdBuffer;
 
 void setup() {
   Serial.begin(SERIAL_USB_BAUD);
@@ -23,8 +24,6 @@ void setup() {
   Serial.println("Fingerprint system ready");
 }
 
-String serialCmdBuffer;
-
 void loop() {
   processSerialCommands();
   processSerial2();
@@ -37,35 +36,6 @@ void loop() {
       sendSerial2Response("$FP_OK: " + String(newId) + "#");
     } else {
       sendSerial2Response("$FP_FAIL#");
-    }
-  }
-}
-
-void processSerial2() {
-  while (Serial2.available() > 0) {
-    char c = Serial2.read();
-    
-    if (c == '$') {
-      serial2Buffer = "$";
-      Serial.println("[DEBUG] Starting new message buffer");
-    } else if (c == '#') {
-      Serial.print("[DEBUG] End delimiter found. Buffer content: '");
-      Serial.print(serial2Buffer);
-      Serial.println("'");
-
-      if (serial2Buffer == "$FP_REG") {
-        registrationRequested = true;
-        serial2Buffer = "";
-        break;
-      } else {
-        Serial.println("[DEBUG] Buffer does not match expected format");
-      }
-      serial2Buffer = "";
-    } else if (serial2Buffer.length() > 0 || serial2Buffer.startsWith("$")) {
-      serial2Buffer += c;
-      Serial.println("[DEBUG] Added char to buffer");
-    } else {
-      Serial.println("[DEBUG] Char ignored (buffer not started)");
     }
   }
 }
@@ -95,7 +65,55 @@ void handleSerialCommand(const String &command) {
   Serial.print("Forwarding ");
   Serial.print(command);
   Serial.println(" to Serial2");
-  Serial2.println(command);
+  Serial2.print(command);
+}
+
+void processSerial2() {
+  while (Serial2.available()) {
+    char c = Serial2.read();
+    if (c == '\n' || c == '\r') {
+      continue;
+    }
+
+    if (c == '$') {
+      serial2Capturing = true;
+      serial2Buffer = "$";
+      Serial.println("Serial2: start delimiter found, buffering command");
+      continue;
+    }
+
+    if (!serial2Capturing) {
+      Serial.print("Serial2: ignoring unexpected char '");
+      Serial.print(c);
+      Serial.println("'");
+      continue;
+    }
+
+    serial2Buffer += c;
+
+    if (serial2Buffer.length() > 64) {
+      Serial.println("Serial2: buffer overflow, resetting");
+      serial2Buffer = "";
+      serial2Capturing = false;
+      continue;
+    }
+
+    if (c == '#') {
+      Serial.print("Serial2 received: ");
+      Serial.println(serial2Buffer);
+
+      if (serial2Buffer == "$FP_REG#") {
+        registrationRequested = true;
+      } else if (serial2Buffer == "$OPEN_LOCK#") {
+        Serial.println("Lock successfully opened");
+      } else {
+        Serial.println("Serial2: unknown command");
+      }
+
+      serial2Buffer = "";
+      serial2Capturing = false;
+    }
+  }
 }
 
 void sendSerial2Response(const String &message) {
