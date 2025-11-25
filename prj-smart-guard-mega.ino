@@ -9,6 +9,7 @@ Adafruit_Fingerprint fingerprint3(&Serial3);
 
 bool registrationRequested = false;
 String serial2Buffer;
+bool serial2Capturing = false;
 
 void setup() {
   Serial.begin(SERIAL_USB_BAUD);
@@ -38,29 +39,30 @@ void loop() {
 }
 
 void processSerial2() {
-  while (Serial2.available()) {
-    char incoming = Serial2.read();
-    if (incoming == '\n' || incoming == '\r') {
-      continue;
-    }
+  while (Serial.available() > 0) {
+    char c = Serial.read();
+    
+    if (c == '$') {
+      serial2Buffer = "$";
+      Serial.println("[DEBUG] Starting new message buffer");
+    } else if (c == '#') {
+      Serial.print("[DEBUG] End delimiter found. Buffer content: '");
+      Serial.print(serial2Buffer);
+      Serial.println("'");
 
-    serial2Buffer += incoming;
-
-    if (incoming == '#') {
-      Serial.print("Serial2 received: ");
-      Serial.println(serial2Buffer);
-
-      if (serial2Buffer == "$FP_REG#") {
+      if (serial2Buffer == "$FP_REG") {
         registrationRequested = true;
+        serial2Buffer = "";
+        break;
       } else {
-        Serial.println("Serial2: unknown command");
+        Serial.println("[DEBUG] Buffer does not match expected format");
       }
-
       serial2Buffer = "";
-    }
-
-    if (serial2Buffer.length() > 64) {
-      serial2Buffer = "";
+    } else if (serial2Buffer.length() > 0 || serial2Buffer.startsWith("$")) {
+      serial2Buffer += c;
+      Serial.println("[DEBUG] Added char to buffer");
+    } else {
+      Serial.println("[DEBUG] Char ignored (buffer not started)");
     }
   }
 }
