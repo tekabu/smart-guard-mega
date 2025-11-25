@@ -41,14 +41,6 @@ void loop() {
 void processSerial2() {
   while (Serial2.available() > 0) {
     char c = Serial2.read();
-
-    Serial.print("[DEBUG] Char received: '");
-    Serial.print(c);
-    Serial.print("' (ASCII: ");
-    Serial.print((int)c);
-    Serial.print(") Buffer: '");
-    Serial.print(serial2Buffer);
-    Serial.println("'");
     
     if (c == '$') {
       serial2Buffer = "$";
